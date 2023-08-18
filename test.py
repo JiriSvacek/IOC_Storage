@@ -1,21 +1,11 @@
-from src.db_model import MyDB
-import configparser
+from main import connect_to_database
 import unittest
-
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-HOST = config.get('DATABASE', 'host')
-PORT = config.get('DATABASE', 'port')
-DATABASE = config.get('DATABASE', 'database')
-USER = config.get('DATABASE', 'user')
-PASSWORD = config.get('DATABASE', 'password')
 
 
 class TestSQLQueries(unittest.TestCase):
 
     def test_select_all_employees(self):
-        db = MyDB(HOST, int(PORT), DATABASE, USER, PASSWORD)
+        db = connect_to_database()
         address = 'MyURL'
         origin = 'Test'
         expected = "MyURL"

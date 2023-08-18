@@ -3,30 +3,26 @@ from psycopg2 import errors
 import psycopg2
 
 
+def exception_handler(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except errors.UndefinedTable as e:
+            print("Table does not exist:", e)
+            return [(None,)]
+
+    return wrapper
+
+
 class MyDB:
     URLS = "urls"
     IP_ADDRESSES = "ip_addresses"
 
-    def __init__(self, host: str, port: int, database: str, user: str, password: str):
-        """Connects to the DB if credentials are OK"""
-        print("Connecting to the DB")
-        try:
-            self.connection = psycopg2.connect(
-                host=host,
-                port=port,
-                user=user,
-                password=password,
-                dbname=database)
-            self.connection.autocommit = True
-            self.curs = self.connection.cursor()
-        except psycopg2.OperationalError as e:
-            print(e)
-            print("Failed to connect to DB")
-            print("Check config file or connection")
-            exit()
-        print("Connected to the DB")
+    def __init__(self, connect: psycopg2.connect):
+        self.connection = connect
+        self.connection.autocommit = True
+        self.curs = self.connection.cursor()
         self.create_tables()
-        print("Created tables")
 
     def create_tables(self) -> None:
         """Creates two table with id as primary key, address and origin."""
@@ -51,28 +47,21 @@ class MyDB:
             execute_values(self.curs, insert, data)
             print(f"Data from {origin} pushed to DB")
 
+    @exception_handler
     def insert_row(self, table: str, address: str, origin: str) -> None:
+        """Inserts single row to the specified table"""
         insert = f'INSERT INTO {table} (address, origin) VALUES (%s, %s) ON CONFLICT (address) DO NOTHING'
-        try:
-            self.curs.execute(insert, (address, origin))
-        except errors.UndefinedTable as e:
-            print("Table does not exist:", e)
+        self.curs.execute(insert, (address, origin))
 
+    @exception_handler
     def get_row_by_origin(self, table: str, origin: str) -> list:
         """Return all rows with desired origin from selected table"""
         select = f"SELECT address FROM {table} WHERE origin = %s"
-        try:
-            self.curs.execute(select, (origin,))
-        except errors.UndefinedTable as e:
-            print("Table does not exist:", e)
-            return [(None,)]
+        self.curs.execute(select, (origin,))
         return self.curs.fetchall()
 
+    @exception_handler
     def delete_row_by_origin(self, table: str, origin: str) -> None:
         """Delete all rows with specified origin from selected table"""
-        delete = f"DELETE FROM {table}s WHERE origin = %s"
-        try:
-            self.curs.execute(delete, (origin,))
-        except errors.UndefinedTable as e:
-            print("Table does not exist:", e)
-
+        delete = f"DELETE FROM {table} WHERE origin = %s"
+        self.curs.execute(delete, (origin,))

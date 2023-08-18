@@ -2,8 +2,8 @@ import requests
 import csv
 
 
-
 def download_data(url: str) -> None or requests:
+    """Connects to the selected url and download content"""
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
@@ -11,12 +11,12 @@ def download_data(url: str) -> None or requests:
     except requests.exceptions.RequestException as e:
         print("Error while connecting:", e)
         return None
-    else:
-        print("Successfully connected to:", url)
-        return response.iter_lines()
+    print("Successfully connected to:", url)
+    return response.iter_lines()
 
 
 def url_decorator(url: str):
+    """Wraps filter function. Tries to connect to the desired url, then pass data to the filter function"""
     def decorator(func):
         def wrapper() -> list:
             output_data = list()
